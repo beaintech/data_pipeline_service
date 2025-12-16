@@ -1,5 +1,117 @@
 # data_pipeline_service
-Here is a **short, clean README** you can drop straight into GitHub.
+
+----
+## Why this code exists (for n8n workflows)
+
+You don’t “need” this code to make n8n work.
+You need it to keep your workflow sane, reusable, and demo-ready once things stop being trivial.
+
+### 1. What n8n is good at (and where it breaks)
+
+n8n is excellent at:
+
+* triggering workflows (email, webhook, upload)
+* moving data between systems
+* simple mapping and branching
+* orchestration
+
+n8n is not good at:
+
+* complex parsing / cleaning logic
+* validation and schema guarantees
+* reusable business logic
+* versioned, testable code
+* anything you want to reuse across workflows
+
+Once you put logic into Function nodes:
+
+* it becomes copy-paste code
+* it has no versioning
+* it’s hard to test
+* it’s painful to explain to others
+* it turns into a black box
+
+### 2. What this Python service gives you that n8n cannot
+
+This code exists to own the logic, not the workflow.
+
+It gives you:
+
+* a single place where “cleaning” is defined
+* strict input/output shape
+* predictable behavior
+* real error traces
+* the ability to test logic without n8n
+* something you can put on GitHub and hand to someone else
+
+In short: **n8n calls it, but doesn’t think.**
+
+### 3. Why n8n calls this instead of doing it itself
+
+In the workflow, n8n should do only this:
+
+> “I received something.
+> Here is the text.
+> Please process it and tell me the result.”
+
+Everything else happens here:
+
+* parsing
+* validation
+* normalization
+* persistence
+* export
+
+That separation is intentional.
+n8n remains replaceable. Your logic does not.
+
+### 4. Why this matters for demos, clients, and future you
+
+Without this service:
+
+* every workflow duplicates logic
+* small changes require editing multiple nodes
+* you cannot say “this is our processing engine”
+* you cannot test or debug cleanly
+* you cannot reuse logic outside n8n
+
+With this service:
+
+* workflows become thin and readable
+* logic changes in one place
+* behavior is predictable
+* debugging is fast
+* you can run the same logic from curl, tests, or another system
+
+This is production thinking, not over-engineering.
+
+### 5. The mental model (key idea)
+
+Think of it like this:
+
+* **n8n = control plane**
+* **this Python service = execution engine**
+
+n8n decides **when** something happens.
+This code decides **how** it happens.
+
+### 6. If you removed this code tomorrow
+
+Yes, you could:
+
+* parse text in a Function node
+* write to Sheets directly
+* generate PDFs with hacks
+
+But:
+
+* every workflow would re-implement logic
+* nothing would be reusable
+* nothing would be testable
+* nothing would scale
+* nothing would look professional
+
+You would have a workflow, not a system.
 
 ---
 
