@@ -155,6 +155,24 @@ http://127.0.0.1:8000/docs
 
 ---
 
+## Run with Docker
+
+```bash
+docker build -t data-pipeline-service .
+docker run --rm -p 8000:8000 --env-file .env \
+  -v $(pwd)/service_account.json:/app/service_account.json \
+  -v $(pwd)/pipeline.db:/app/pipeline.db \
+  data-pipeline-service
+```
+
+Notes:
+
+* The `--env-file` flag picks up your API keys and `DATABASE_URL`.
+* Mount the service account JSON so Google Sheets works.
+* Mount the SQLite file if you want to keep data between runs.
+
+---
+
 ## Environment variables
 
 ```ini
@@ -212,6 +230,17 @@ curl -X POST http://127.0.0.1:8000/pipeline/clean_store \
   -H "Content-Type: application/json" \
   -d '{"source":"test","text":"sample invoice"}'
 ```
+
+### HTTP test from n8n (cloud or self-hosted)
+
+1) Start the service (locally or in Docker) and expose it with a tunnel such as `ngrok http 8000`, or use its deployed URL.
+2) In n8n, add a **Manual Trigger** node and an **HTTP Request** node.
+3) Configure the HTTP node:
+   - Method: POST
+   - URL: `https://<public-host>/pipeline/clean_store` (or another endpoint)
+   - Headers: `Content-Type: application/json`
+   - Body (JSON): `{"source": "n8n-cloud-test", "text": "hello from n8n"}` (swap in your payload)
+4) Click **Execute Node** to confirm you get a 200 response with cleaned data.
 
 ---
 
