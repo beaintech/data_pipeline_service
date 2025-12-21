@@ -1,5 +1,7 @@
 # data_pipeline_service
 
+![workflow](./workflow.png)
+
 ----
 ## Why this code exists (for n8n workflows)
 
