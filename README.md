@@ -85,14 +85,14 @@ With this service:
 * debugging is fast
 * you can run the same logic from curl, tests, or another system
 
-This is production thinking, not over-engineering.
+This is production thinking.
 
 ### 5. The mental model (key idea)
 
 Think of it like this:
 
 * **n8n = control plane**
-* **this Python service = execution engine**
+* **Python service = execution engine**
 
 n8n decides **when** something happens.
 This code decides **how** it happens.
@@ -227,6 +227,32 @@ This service acts as a reusable backend step inside your workflow.
 
 ---
 
+## Quick connect from n8n (cloud or self-hosted)
+
+1) Make the service reachable: run `uvicorn app.main:app --reload` locally and expose via a tunnel (e.g., `ngrok http 8000`), or deploy it (Render/Fly/Cloud Run/VPS). Note the public HTTPS base URL.
+2) In n8n, add an **HTTP Request** node:
+   - Method: POST
+   - URL: `https://<your-host>/pipeline/clean_to_sheets` (or `clean_store` / `clean_to_pdf`)
+   - Headers: `Content-Type: application/json`
+   - Body (JSON): `{"source": "n8n", "text": {{$json["text"]}}}` (map your incoming text)
+   - If you call `clean_to_pdf`, set the node response to file/base64 per your n8n version.
+3) Set env vars on the server/container: `DATABASE_URL`, `GOOGLE_SHEETS_ID`, `GOOGLE_SERVICE_ACCOUNT_FILE`; share the Sheet with the service account email.
+4) Optional: add an API key header and HTTPS if exposing publicly.
+
+LLM prompt context (drop into your n8n LLM node):
+
+```
+You are part of an n8n workflow that processes invoice emails.
+Raw text extracted from a PDF invoice will be provided.
+Your task is to extract and normalize invoice information according to the given Invoice Data Schema.
+Return only valid JSON that strictly matches the schema.
+The output will be appended as a row in Google Sheets.
+```
+
+Connect the HTTP node after your LLM/output parser step to send the structured invoice text here.
+
+---
+
 ## Notes
 
 The cleaning logic is a placeholder.
@@ -234,8 +260,45 @@ Replace it with regex or LLM extraction without changing the API.
 
 ---
 
-If you want, next I can:
+## n8n Invoice Processing Example
 
-* add a `/health` endpoint
-* simplify API responses for n8n
-* prepare a demo n8n workflow JSON
+This n8n workflow demonstrates an automated invoice processing pipeline.
+
+It shows how to go from an incoming invoice email to structured, spreadsheet-ready accounting data with minimal manual effort.
+
+---
+
+### High-level overview
+
+When an invoice email arrives in Gmail, the workflow extracts the PDF attachment, converts it to raw text, uses an LLM to extract structured invoice fields according to a fixed schema, and appends the result to Google Sheets.
+
+---
+
+### Workflow steps
+
+1. **When Invoice Email Arrives (Gmail Trigger)**  
+   Listens for incoming Gmail messages that match invoice criteria (for example, emails with PDF attachments).  
+   Triggers the workflow whenever a new invoice email is received.
+
+2. **Workflow Configuration (Manual / Config Node)**  
+   Defines workflow-level configuration such as test mode flags, filters, or shared metadata.  
+   Does not perform business logic or data processing.
+
+3. **Extract PDF Text (Extract From PDF)**  
+   Reads the PDF attachment from the email and extracts raw, unstructured text.  
+   The output typically contains invoice numbers, vendor names, dates, and amounts mixed together.
+
+4. **Extract Invoice Data (LLM + Schema)**  
+   The intelligence layer of the workflow.  
+   Sends the raw PDF text to an LLM together with a predefined **Invoice Data Schema**.  
+   The model parses the text and returns structured JSON fields such as invoice number, vendor, date, total amount, and currency.  
+   An Output Parser enforces that the response strictly matches the schema.
+
+5. **Append to Google Sheet**  
+   Appends the structured invoice data as a new row in Google Sheets for bookkeeping, reporting, or downstream automation.
+
+---
+
+### One-sentence summary
+
+This example shows an end-to-end automation that converts incoming invoice emails into structured accounting data using n8n for orchestration and an LLM for semantic extraction.
