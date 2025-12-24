@@ -331,3 +331,50 @@ When an invoice email arrives in Gmail, the workflow extracts the PDF attachment
 ### One-sentence summary
 
 This example shows an end-to-end automation that converts incoming invoice emails into structured accounting data using n8n for orchestration and an LLM for semantic extraction.
+
+## Connecion Test
+
+url -X POST http://127.0.0.1:8000/pipeline/clean_store -H "Content-Type: application/json" -d '{"source":"test","text":"sample invoice"}'
+curl: (7) Failed to connect to 127.0.0.1 port 8000 after 0 ms: Couldn't connect to server
+
+## n8n → FastAPI (HTTP Request) headers & body notes
+
+These endpoints expect JSON. In n8n, always send `Content-Type: application/json` and keep the request body in JSON mode.
+
+### Common HTTP Request node settings (for all pipeline endpoints)
+
+Method: `POST`  
+Send: `JSON` (Body Content Type = JSON)  
+URL: `https://<your-tunnel-domain>/<endpoint-path>`  
+Example: `https://xxxx.trycloudflare.com/clean_to_sheets`
+
+Headers:
+
+- `Content-Type: application/json`
+- (Optional) `Accept: application/json`
+
+If you use auth (optional), add one of these:
+
+- `Authorization: Bearer <TOKEN>`  
+  or
+- `X-API-Key: <KEY>`
+
+Timeout: keep default or set to 60s when exporting to Sheets / generating PDF.
+
+---
+
+## Endpoint: POST /clean_to_sheets
+
+### Purpose
+Clean incoming text and export the cleaned text to Google Sheets.
+
+### n8n HTTP Request body (JSON)
+
+```json
+{
+  "source": "n8n",
+  "text": "={{$json.text}}",
+  "sheet_id": "={{$env.SHEET_ID}}",
+  "tab_name": "Sheet1",
+  "meta": "={{$json}}"
+}
